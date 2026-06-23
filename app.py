@@ -14,8 +14,13 @@ socketio = SocketIO(
     app,
     cors_allowed_origins="*",
     async_mode='eventlet',
-    logger=False,
-    engineio_logger=False
+    logger=True,
+    engineio_logger=True,
+    ping_timeout=60,
+    ping_interval=25,
+    max_http_buffer_size=1e8,
+    allow_upgrades=True,
+    http_compression=True
 )
 
 # Otaq şifrəsi (environment dəyişənindən)
@@ -193,4 +198,11 @@ def handle_disconnect():
 # ==================== SERVERİ BAŞLAT ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=False)
+    socketio.run(
+        app,
+        host='0.0.0.0',
+        port=port,
+        debug=False,
+        allow_unsafe_werkzeug=True,
+        use_reloader=False
+    )
