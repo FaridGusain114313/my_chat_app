@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>💬 Otaqlı Chat</title>
     <style>
-        /* ==================== GLOBAL ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -20,8 +19,6 @@
             min-height: 100vh;
             padding: 20px;
         }
-        
-        /* ==================== ƏSAS KONTEYNER ==================== */
         .app {
             width: 100%;
             max-width: 1200px;
@@ -32,8 +29,6 @@
             display: flex;
             overflow: hidden;
         }
-        
-        /* ==================== SIDEBAR ==================== */
         .sidebar {
             width: 280px;
             background: #16213e;
@@ -81,8 +76,6 @@
         .room-item .badge.zero {
             background: #2d3748;
         }
-        
-        /* ==================== OTAQ YARAT ==================== */
         .create-room {
             margin-top: 15px;
             display: flex;
@@ -108,12 +101,15 @@
             border-radius: 12px;
             cursor: pointer;
             font-weight: bold;
+            transition: 0.3s;
         }
         .create-room button:hover {
             background: #c73652;
         }
-        
-        /* ==================== CHAT SAHƏSİ ==================== */
+        .create-room button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .chat-area {
             flex: 1;
             display: flex;
@@ -137,8 +133,20 @@
             color: #a0aec0;
             font-size: 14px;
         }
-        
-        /* ==================== MESAJLAR ==================== */
+        .connection-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin-left: 12px;
+        }
+        .connection-status.online {
+            background: #2d3748;
+            color: #48bb78;
+        }
+        .connection-status.offline {
+            background: #2d3748;
+            color: #e94560;
+        }
         .messages {
             flex: 1;
             padding: 20px;
@@ -185,8 +193,6 @@
             text-align: right;
             margin-top: 4px;
         }
-        
-        /* ==================== MESAJ GÖNDƏRMƏ ==================== */
         .input-area {
             display: flex;
             padding: 15px 20px;
@@ -207,6 +213,9 @@
         .input-area input:focus {
             border-color: #e94560;
         }
+        .input-area input:disabled {
+            opacity: 0.5;
+        }
         .input-area button {
             padding: 12px 30px;
             background: #e94560;
@@ -221,8 +230,11 @@
             background: #c73652;
             transform: scale(1.02);
         }
-        
-        /* ==================== GİRİŞ EKRANI ==================== */
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         .login-screen {
             position: fixed;
             top: 0;
@@ -273,6 +285,7 @@
             border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
+            transition: 0.3s;
         }
         .login-box button:hover {
             background: #c73652;
@@ -290,7 +303,6 @@
 </head>
 <body>
 
-    <!-- ==================== GİRİŞ EKRANI ==================== -->
     <div class="login-screen" id="loginScreen">
         <div class="login-box">
             <h2>🔒 Otağa Giriş</h2>
@@ -301,10 +313,7 @@
         </div>
     </div>
 
-    <!-- ==================== ƏSAS TƏTBİQ ==================== -->
     <div class="app" id="app" style="display:none;">
-        
-        <!-- Sidebar -->
         <div class="sidebar">
             <h2>💬 Otaqlar</h2>
             <div class="room-list" id="roomList">
@@ -315,11 +324,12 @@
                 <button onclick="createRoom()">➕</button>
             </div>
         </div>
-        
-        <!-- Chat -->
         <div class="chat-area">
             <div class="chat-header">
-                <span class="room-title" id="currentRoomName">Ümumi Söhbət</span>
+                <div>
+                    <span class="room-title" id="currentRoomName">Ümumi Söhbət</span>
+                    <span class="connection-status online" id="connectionStatus">✅ Bağlı</span>
+                </div>
                 <span class="user-count" id="userCount">👥 0</span>
             </div>
             <div class="messages" id="messages">
@@ -330,10 +340,8 @@
                 <button onclick="sendMessage()">Göndər</button>
             </div>
         </div>
-        
     </div>
 
-    <!-- ==================== SOCKET.IO ==================== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js">
     </script>
     <script>
@@ -342,6 +350,7 @@
         let username = '';
         let currentRoom = 'ümumi';
         let roomsData = {};
+        let isConnecting = false;
 
         // ==================== GİRİŞ ====================
         function loginUser() {
@@ -363,22 +372,79 @@
             initSocket();
         }
 
-        // Enter ilə giriş
         document.getElementById('usernameInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') loginUser();
         });
 
+        // ==================== ƏLAQƏ STATUSU ====================
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.querySelector('.input-area button');
+            
+            if (statusEl) {
+                if (connected) {
+                    statusEl.textContent = '✅ Bağlı';
+                    statusEl.className = 'connection-status online';
+                    if (messageInput) messageInput.disabled = false;
+                    if (sendBtn) sendBtn.disabled = false;
+                } else {
+                    statusEl.textContent = '❌ Bağlantı yoxdur';
+                    statusEl.className = 'connection-status offline';
+                    if (messageInput) messageInput.disabled = true;
+                    if (sendBtn) sendBtn.disabled = true;
+                }
+            }
+        }
+
         // ==================== SOCKET BAĞLANTISI ====================
         function initSocket() {
+            if (isConnecting) return;
+            isConnecting = true;
+
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+
+            console.log('🔌 Socket qurulur...');
+
             socket = io({
                 transports: ['websocket', 'polling'],
                 secure: true,
-                rejectUnauthorized: false
+                rejectUnauthorized: false,
+                reconnection: true,
+                reconnectionAttempts: 10,
+                reconnectionDelay: 1000,
+                timeout: 20000
             });
 
             socket.on('connect', function() {
-                console.log('✅ Serverə qoşuldu!');
-                joinRoom('ümumi');
+                console.log('✅ Serverə qoşuldu! ID:', socket.id);
+                isConnecting = false;
+                updateConnectionStatus(true);
+                setTimeout(() => {
+                    joinRoom('ümumi');
+                }, 300);
+            });
+
+            socket.on('connect_error', function(error) {
+                console.error('❌ Bağlantı xətası:', error);
+                isConnecting = false;
+                updateConnectionStatus(false);
+            });
+
+            socket.on('disconnect', function() {
+                console.log('❌ Serverdən ayrıldı!');
+                updateConnectionStatus(false);
+            });
+
+            socket.on('reconnect', function(attemptNumber) {
+                console.log(`🔄 Yenidən qoşuldu (${attemptNumber})`);
+                updateConnectionStatus(true);
+                setTimeout(() => {
+                    joinRoom('ümumi');
+                }, 300);
             });
 
             socket.on('rooms_list', function(rooms) {
@@ -429,92 +495,83 @@
                 console.error('❌ Server xətası:', data);
                 alert('❌ Xəta: ' + data.message);
             });
-
-            socket.on('disconnect', function() {
-                console.log('❌ Serverdən ayrıldı!');
-                document.getElementById('userCount').textContent = '👥 0';
-            });
         }
 
         // ==================== OTAĞA QOŞUL ====================
-function joinRoom(roomId) {
-    if (!roomId) roomId = 'ümumi';
-    
-    // Bağlantı yoxdursa, gözlə
-    if (!socket || !socket.connected) {
-        console.log('⏳ Bağlantı gözlənilir...');
-        // 3 saniyə ərzində bağlantı qurulmasını gözlə
-        let attempts = 0;
-        const maxAttempts = 30; // 3 saniyə (hər 100ms)
-        
-        const waitForConnection = setInterval(() => {
-            attempts++;
-            if (socket && socket.connected) {
-                clearInterval(waitForConnection);
-                console.log('✅ Bağlantı quruldu, qoşulur:', roomId);
-                socket.emit('join_room', { room: roomId, username: username });
-            } else if (attempts >= maxAttempts) {
-                clearInterval(waitForConnection);
-                console.error('❌ Bağlantı vaxtı keçdi!');
-                alert('⚠️ Serverə bağlantı qurula bilmədi!');
+        function joinRoom(roomId) {
+            if (!roomId) roomId = 'ümumi';
+            
+            if (!socket || !socket.connected) {
+                console.log('⏳ Bağlantı gözlənilir...');
+                setTimeout(() => {
+                    if (socket && socket.connected) {
+                        socket.emit('join_room', { room: roomId, username: username });
+                    } else {
+                        console.error('❌ Bağlantı hələ qurulmayıb!');
+                    }
+                }, 1000);
+                return;
             }
-        }, 100);
-        return;
-    }
-    
-    console.log('🔗 Qoşulur:', roomId);
-    socket.emit('join_room', { room: roomId, username: username });
-}
+            
+            console.log('🔗 Qoşulur:', roomId);
+            socket.emit('join_room', { room: roomId, username: username });
+        }
 
-
+        // ==================== OTAQ YARAT ====================
         function createRoom() {
             const input = document.getElementById('newRoomInput');
             const name = input.value.trim();
-
+            
             if (!name) {
                 input.classList.add('input-error');
                 setTimeout(() => input.classList.remove('input-error'), 1000);
                 return;
             }
-
+            
             if (!/^[a-zA-Z0-9\s_\-]+$/.test(name)) {
                 alert('❌ Otaq adında yalnız hərflər, rəqəmlər, boşluq, _ və - istifadə edin!');
                 return;
             }
-
+            
+            const btn = document.querySelector('.create-room button');
+            btn.disabled = true;
+            btn.textContent = '⏳';
+            
             console.log('➕ Otaq yaradılır:', name);
-
+            
             fetch('/api/rooms/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.error || `HTTP xətası: ${response.status}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('📡 Cavab:', data);
-                    if (data.error) {
-                        alert('❌ ' + data.error);
-                    } else {
-                        roomsData[data.id] = data.name;
-                        input.value = '';
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `HTTP xətası: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('📡 Cavab:', data);
+                if (data.error) {
+                    alert('❌ ' + data.error);
+                } else {
+                    roomsData[data.id] = data.name;
+                    input.value = '';
+                    setTimeout(() => {
                         joinRoom(data.id);
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Xəta:', error);
-                    alert('❌ Otaq yaradılarkən xəta: ' + error.message);
-                });
-        }
-
-        function getRoomName(roomId) {
-            return roomsData[roomId] || roomId;
+                    }, 500);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Xəta:', error);
+                alert('❌ Otaq yaradılarkən xəta: ' + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = '➕';
+            });
         }
 
         // ==================== OTAQ SİYAHISI ====================
@@ -565,6 +622,10 @@ function joinRoom(roomId) {
                 return;
             }
 
+            const btn = document.querySelector('.input-area button');
+            btn.disabled = true;
+            btn.textContent = '⏳';
+
             const now = new Date();
             const time = now.toLocaleTimeString('az');
 
@@ -588,6 +649,11 @@ function joinRoom(roomId) {
 
             input.value = '';
             input.focus();
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.textContent = 'Göndər';
+            }, 300);
         }
 
         function addMessage(data) {
@@ -621,16 +687,16 @@ function joinRoom(roomId) {
 
         // ==================== HADİSƏLƏR ====================
         document.addEventListener('DOMContentLoaded', function() {
-            // Enter ilə mesaj göndər
+            console.log('📄 Səhifə yükləndi');
+            
             const messageInput = document.getElementById('messageInput');
             messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();
                 }
             });
 
-            // Enter ilə otaq yarat
             const newRoomInput = document.getElementById('newRoomInput');
             newRoomInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -640,6 +706,5 @@ function joinRoom(roomId) {
             });
         });
     </script>
-
 </body>
 </html>
