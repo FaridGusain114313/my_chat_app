@@ -1,17 +1,27 @@
-# app.py - Otaq sistemi ilə
-from flask import Flask, render_template, request, session, jsonify
+# app.py - Tam işləyən chat tətbiqi
+from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
 import secrets
+import re
 
+# ==================== KONFİQURASİYA ====================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = secrets.token_hex(16)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# Otaq şifrəsi (opsiyonel)
+# Socket.io tənzimləməsi
+socketio = SocketIO(
+    app,
+    cors_allowed_origins="*",
+    async_mode='eventlet',
+    logger=False,
+    engineio_logger=False
+)
+
+# Otaq şifrəsi (environment dəyişənindən)
 ROOM_PASSWORD = os.environ.get('ROOM_PASSWORD', 'secret123')
 
-# Məlumat yaddaşı
+# ==================== MƏLUMATLAR ====================
 rooms = {
     'ümumi': {
         'name': 'Ümumi Söhbət',
@@ -21,13 +31,15 @@ rooms = {
 }
 MAX_MESSAGES = 100
 
+# ==================== ROUTES ====================
 @app.route('/')
 def index():
+    """Əsas səhifə"""
     return render_template('index.html')
 
 @app.route('/api/rooms')
 def get_rooms():
-    """Bütün otaqların siyahısını qaytar"""
+    """Bütün otaqların siyahısı"""
     room_list = []
     for room_id, room_data in rooms.items():
         room_list.append({
@@ -39,31 +51,30 @@ def get_rooms():
 
 @app.route('/api/rooms/create', methods=['POST'])
 def create_room():
+    """Yeni otaq yarat"""
     try:
-        # Sorğunun JSON olduğunu yoxlayın
+        # JSON formatını yoxla
         if not request.is_json:
             return jsonify({'error': 'JSON formatı tələb olunur'}), 400
         
         data = request.get_json()
         room_name = data.get('name', '').strip()
         
-        # Otaq adının boş olub-olmadığını yoxlayın
+        # Otaq adını yoxla
         if not room_name:
             return jsonify({'error': 'Otaq adı boş ola bilməz'}), 400
         
-        # Otaq ID-si yaradın (kiçik hərflər, boşluqları _ ilə əvəz et)
+        # Yalnız icazə verilən simvollar
+        if not re.match(r'^[a-zA-Z0-9\s_\-]+$', room_name):
+            return jsonify({'error': 'Otaq adında yalnız hərflər, rəqəmlər və _ - istifadə edin'}), 400
+        
         room_id = room_name.lower().replace(' ', '_')
         
-        # Yalnız hərflər, rəqəmlər və _ icazə verin
-        import re
-        if not re.match(r'^[a-z0-9_]+$', room_id):
-            return jsonify({'error': 'Otaq adında yalnız hərflər, rəqəmlər və _ istifadə edin'}), 400
-        
-        # Otağın mövcud olub-olmadığını yoxlayın
+        # Otaq mövcuddursa
         if room_id in rooms:
-            return jsonify({'error': f'"{room_name}" adlı otaq artıq mövcuddur'}), 400
+            return jsonify({'id': room_id, 'name': rooms[room_id]['name']}), 200
         
-        # Yeni otaq yaradın
+        # Yeni otaq yarat
         rooms[room_id] = {
             'name': room_name,
             'messages': [],
@@ -77,22 +88,25 @@ def create_room():
         print(f"❌ Otaq yaratma xətası: {e}")
         return jsonify({'error': f'Server xətası: {str(e)}'}), 500
 
+# ==================== SOCKET.IO EVENTLƏRİ ====================
 @socketio.on('connect')
 def handle_connect():
+    """İstifadəçi qoşulduqda"""
     print(f'✅ İstifadəçi qoşuldu! {request.sid}')
     emit('rooms_list', [{'id': r, 'name': rooms[r]['name']} for r in rooms])
 
 @socketio.on('join_room')
 def handle_join_room(data):
-    """İstifadəçi otağa qoşulur"""
-    room_id = data.get('room')
+    """İstifadəçi otağa qoşulduqda"""
+    room_id = data.get('room', 'ümumi')
     username = data.get('username', 'Anonim')
     
+    # Otaq mövcud deyilsə
     if room_id not in rooms:
         emit('error', {'message': 'Otaq tapılmadı'})
         return
     
-    # Əvvəlki otaqdan çıx (əgər varsa)
+    # Əvvəlki otaqdan çıx
     for r in rooms:
         if request.sid in rooms[r]['users']:
             rooms[r]['users'].discard(request.sid)
@@ -102,7 +116,7 @@ def handle_join_room(data):
     join_room(room_id)
     rooms[room_id]['users'].add(request.sid)
     
-    # Otağa qoşulma mesajı
+    # Sistem mesajı
     join_message = {
         'username': 'System',
         'message': f'👋 {username} otağa qoşuldu!',
@@ -110,18 +124,18 @@ def handle_join_room(data):
         'type': 'system'
     }
     rooms[room_id]['messages'].append(join_message)
-    emit('room_joined', {'room': room_id, 'username': username}, to=room_id)
     
-    # Otaqdakı istifadəçi sayını yenilə
+    # Yalnız digər istifadəçilərə bildir
+    emit('room_joined', {'room': room_id, 'username': username}, to=room_id)
     emit('user_count', {'room': room_id, 'count': len(rooms[room_id]['users'])}, to=room_id)
     
-    # Son mesajları göndər
+    # Yeni istifadəçiyə tarixçəni göndər
     history = rooms[room_id]['messages'][-MAX_MESSAGES:]
     emit('room_history', {'messages': history, 'room': room_id})
 
 @socketio.on('leave_room')
 def handle_leave_room(data):
-    """İstifadəçi otaqdan çıxır"""
+    """İstifadəçi otaqdan çıxdıqda"""
     room_id = data.get('room')
     username = data.get('username', 'Anonim')
     
@@ -141,15 +155,17 @@ def handle_leave_room(data):
 
 @socketio.on('message')
 def handle_message(data):
-    """Mesaj göndər"""
+    """Yeni mesaj gəldikdə"""
     room_id = data.get('room', 'ümumi')
     username = data.get('username', 'Anonim')
     message = data.get('message', '')
     
+    # Otaq mövcud deyilsə
     if room_id not in rooms:
         emit('error', {'message': 'Otaq tapılmadı'})
         return
     
+    # Mesajı formatla
     message_data = {
         'username': username,
         'message': message[:500],
@@ -157,11 +173,12 @@ def handle_message(data):
         'type': 'user'
     }
     
+    # Yadda saxla
     rooms[room_id]['messages'].append(message_data)
     if len(rooms[room_id]['messages']) > MAX_MESSAGES:
         rooms[room_id]['messages'].pop(0)
     
-    # Yalnız həmin otaqdakılara göndər
+    # Otaqdakı hər kəsə göndər
     emit('message', message_data, to=room_id)
 
 @socketio.on('disconnect')
@@ -173,6 +190,7 @@ def handle_disconnect():
             emit('user_count', {'room': room_id, 'count': len(rooms[room_id]['users'])}, to=room_id)
     print(f'❌ İstifadəçi ayrıldı! {request.sid}')
 
+# ==================== SERVERİ BAŞLAT ====================
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    socketio.run(app, host='0.0.0.0', port=port)
+    socketio.run(app, host='0.0.0.0', port=port, debug=False)
