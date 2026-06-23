@@ -436,16 +436,36 @@
             });
         }
 
-        // ==================== OTAQ FUNKSİYALARI ====================
-        function joinRoom(roomId) {
-            if (!roomId) roomId = 'ümumi';
-            if (!socket || !socket.connected) {
-                console.log('⚠️ Bağlantı yoxdur!');
-                return;
+        // ==================== OTAĞA QOŞUL ====================
+function joinRoom(roomId) {
+    if (!roomId) roomId = 'ümumi';
+    
+    // Bağlantı yoxdursa, gözlə
+    if (!socket || !socket.connected) {
+        console.log('⏳ Bağlantı gözlənilir...');
+        // 3 saniyə ərzində bağlantı qurulmasını gözlə
+        let attempts = 0;
+        const maxAttempts = 30; // 3 saniyə (hər 100ms)
+        
+        const waitForConnection = setInterval(() => {
+            attempts++;
+            if (socket && socket.connected) {
+                clearInterval(waitForConnection);
+                console.log('✅ Bağlantı quruldu, qoşulur:', roomId);
+                socket.emit('join_room', { room: roomId, username: username });
+            } else if (attempts >= maxAttempts) {
+                clearInterval(waitForConnection);
+                console.error('❌ Bağlantı vaxtı keçdi!');
+                alert('⚠️ Serverə bağlantı qurula bilmədi!');
             }
-            console.log('🔗 Qoşulur:', roomId);
-            socket.emit('join_room', { room: roomId, username: username });
-        }
+        }, 100);
+        return;
+    }
+    
+    console.log('🔗 Qoşulur:', roomId);
+    socket.emit('join_room', { room: roomId, username: username });
+}
+
 
         function createRoom() {
             const input = document.getElementById('newRoomInput');
