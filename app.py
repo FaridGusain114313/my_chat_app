@@ -39,25 +39,43 @@ def get_rooms():
 
 @app.route('/api/rooms/create', methods=['POST'])
 def create_room():
-    """Yeni otaq yarat"""
-    data = request.get_json()
-    room_name = data.get('name', '').strip()
-    
-    if not room_name:
-        return jsonify({'error': 'Otaq adı boş ola bilməz'}), 400
-    
-    room_id = room_name.lower().replace(' ', '_')
-    
-    if room_id in rooms:
-        return jsonify({'error': 'Bu adda otaq artıq mövcuddur'}), 400
-    
-    rooms[room_id] = {
-        'name': room_name,
-        'messages': [],
-        'users': set()
-    }
-    
-    return jsonify({'id': room_id, 'name': room_name}), 201
+    try:
+        # Sorğunun JSON olduğunu yoxlayın
+        if not request.is_json:
+            return jsonify({'error': 'JSON formatı tələb olunur'}), 400
+        
+        data = request.get_json()
+        room_name = data.get('name', '').strip()
+        
+        # Otaq adının boş olub-olmadığını yoxlayın
+        if not room_name:
+            return jsonify({'error': 'Otaq adı boş ola bilməz'}), 400
+        
+        # Otaq ID-si yaradın (kiçik hərflər, boşluqları _ ilə əvəz et)
+        room_id = room_name.lower().replace(' ', '_')
+        
+        # Yalnız hərflər, rəqəmlər və _ icazə verin
+        import re
+        if not re.match(r'^[a-z0-9_]+$', room_id):
+            return jsonify({'error': 'Otaq adında yalnız hərflər, rəqəmlər və _ istifadə edin'}), 400
+        
+        # Otağın mövcud olub-olmadığını yoxlayın
+        if room_id in rooms:
+            return jsonify({'error': f'"{room_name}" adlı otaq artıq mövcuddur'}), 400
+        
+        # Yeni otaq yaradın
+        rooms[room_id] = {
+            'name': room_name,
+            'messages': [],
+            'users': set()
+        }
+        
+        print(f"✅ Yeni otaq yaradıldı: {room_id} - {room_name}")
+        return jsonify({'id': room_id, 'name': room_name}), 201
+        
+    except Exception as e:
+        print(f"❌ Otaq yaratma xətası: {e}")
+        return jsonify({'error': f'Server xətası: {str(e)}'}), 500
 
 @socketio.on('connect')
 def handle_connect():
