@@ -20,7 +20,7 @@ ALLOWED_ORIGINS = [
 ]
 
 # ===== SOCKETIO =====
-socketio = SocketIO(app, cors_allowed_origins="ALLOWED_ORIGINS")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Otaq şifrəsi (istəyə görə dəyişin)
 ROOM_PASSWORD = "secret123"
