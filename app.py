@@ -22,7 +22,7 @@ ALLOWED_ORIGINS = [
 ]
 
 # ===== SOCKETIO =====
-socketio = SocketIO(app, cors_allowed_origins="ALLOWED_ORIGINS")
+socketio = SocketIO(app, cors_allowed_origins="https://mychatapp-production-c2ce.up.railway.app/")
 
 # Otaq şifrəsi (istəyə görə dəyişin)
 ROOM_PASSWORD = "secret123"
