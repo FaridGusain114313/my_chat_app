@@ -1,33 +1,32 @@
-from flask import Flask, render_template, request, jsonify, redirect
+# app.py - Tam Düzəldilmiş Versiya
+from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
+import time
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-# ===== HTTPS ZORLA (Talisman OLMADAN) =====
-@app.before_request
-def before_request():
-    if request.headers.get('X-Forwarded-Proto') == 'http' and os.environ.get('RAILWAY_ENVIRONMENT'):
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
-    
-# Öz domeninizi təyin edin
-ALLOWED_ORIGINS = [
-    "https://mychatapp-production-c2ce.up.railway.app",
-    "https://mychatapp-production-c2ce.up.railway.app/",
-    "https://railway.com",  # Railway domeni
-    "http://localhost:5000",  # Lokal test
-    "http://127.0.0.1:5000"   # Lokal test
+# ===== SOCKET.IO - CORS AÇIQ =====
+socketio = SocketIO(
+    app, 
+    cors_allowed_origins="*",
+    async_mode='gevent',
+    ping_timeout=60,
+    ping_interval=25
+)
+
+# ===== İCAZƏ VERİLƏN İSTİFADƏÇİ ADLARI (Avropa Paytaxtları) =====
+ALLOWED_USERS = [
+    # Qərbi Avropa
+    "London", "Paris", "Berlin", "Madrid", "Lissabon",
+    "Roma", "Vatikan", "San Marino", "Andorra", "Monako",
+    "Luksemburq", "Brüssel", "Amsterdam", "Dublin",
+    "Bern", "Vyana"
 ]
 
-# ===== SOCKETIO =====
-socketio = SocketIO(app, cors_allowed_origins="https://mychatapp-production-c2ce.up.railway.app/")
-
-# Otaq şifrəsi (istəyə görə dəyişin)
-ROOM_PASSWORD = "secret123"
-
-# Yaddaş
+# ===== YADDAŞ =====
 rooms = {
     'ümumi': {
         'name': 'Ümumi Söhbət',
@@ -37,6 +36,10 @@ rooms = {
 }
 MAX_MESSAGES = 100
 
+# Rate limiting üçün
+user_last_message = {}
+
+# ===== ROUTES =====
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -62,6 +65,7 @@ def create_room():
     
     return jsonify({'id': room_id, 'name': name}), 201
 
+# ===== SOCKET.IO EVENTLƏRİ =====
 @socketio.on('connect')
 def handle_connect():
     print(f'✅ {request.sid} qoşuldu')
@@ -72,7 +76,14 @@ def handle_join(data):
     room = data.get('room', 'ümumi')
     username = data.get('username', 'Anonim')
     
+    # ===== İSTİFADƏÇİ YOXLAMASI =====
+    if username not in ALLOWED_USERS:
+        print(f"❌ İcazəsiz giriş cəhdi: {username}")
+        emit('error', {'message': f'"{username}" adı icazə verilən siyahıda yoxdur!'})
+        return
+    
     if room not in rooms:
+        emit('error', {'message': 'Otaq tapılmadı'})
         return
     
     # Köhnə otaqdan çıx
@@ -85,17 +96,18 @@ def handle_join(data):
     join_room(room)
     rooms[room]['users'].add(request.sid)
     
-    # **DƏYİŞİKLİK 1:** Yalnız bu istifadəçiyə tarixçəni göndər (broadcast yox!)
+    # Tarixçə
     history = rooms[room]['messages'][-MAX_MESSAGES:]
     emit('history', {'messages': history, 'room': room}, to=request.sid)
     
-    # **DƏYİŞİKLİK 2:** Qoşulma mesajını yalnız digər istifadəçilərə göndər
+    # Qoşulma mesajı
     msg = {'username': 'System', 'message': f'👋 {username} qoşuldu!', 'type': 'system'}
     rooms[room]['messages'].append(msg)
-    emit('message', msg, to=room)
+    emit('message', msg, to=room, include_self=False)
     emit('user_count', {'room': room, 'count': len(rooms[room]['users'])}, to=room)
+    
+    print(f"✅ {username} otağa qoşuldu!")
 
-# app.py - handle_message funksiyası
 @socketio.on('message')
 def handle_message(data):
     room = data.get('room', 'ümumi')
@@ -105,10 +117,20 @@ def handle_message(data):
     if room not in rooms:
         return
     
+    # ===== RATE LIMITING (2 saniyə) =====
+    user_id = request.sid
+    now = time.time()
+    if user_id in user_last_message:
+        if now - user_last_message[user_id] < 2:
+            emit('error', {'message': 'Çox sürətli mesaj göndərirsiniz! 2 saniyə gözləyin.'})
+            return
+    user_last_message[user_id] = now
+    
+    # Mesajı formatla
     msg = {
         'username': username,
         'message': message,
-        'time': data.get('time', ''),
+        'time': data.get('time', datetime.now().strftime('%H:%M')),
         'type': 'user'
     }
     rooms[room]['messages'].append(msg)
@@ -116,11 +138,7 @@ def handle_message(data):
     if len(rooms[room]['messages']) > MAX_MESSAGES:
         rooms[room]['messages'].pop(0)
     
-    # **BURADA emit iki dəfə işləyə bilər**
     emit('message', msg, to=room, include_self=False)
-    
-    # **Əgər bu sətir iki dəfə işləyirsə, problem burdadır**
-    print(f"📤 Emit göndərildi: {msg}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -130,6 +148,7 @@ def handle_disconnect():
             emit('user_count', {'room': room, 'count': len(rooms[room]['users'])}, to=room)
     print(f'❌ {request.sid} ayrıldı')
 
+# ===== SERVER =====
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5001))
+    port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port)
