@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💬 Chat - Paytaxtlar</title>
+    <title>💬 Chat - Telegram MFA</title>
     <style>
         * {
             margin: 0;
@@ -232,7 +232,7 @@
             border-radius: 16px;
             text-align: center;
             width: 90%;
-            max-width: 350px;
+            max-width: 380px;
             border: 1px solid #2a0a0a;
             box-shadow: 0 0 60px rgba(139, 0, 0, 0.2);
         }
@@ -285,6 +285,12 @@
             margin-top: 8px;
             display: none;
         }
+        .login-box .info {
+            color: #48bb78;
+            font-size: 13px;
+            margin-top: 8px;
+            display: none;
+        }
         .hidden {
             display: none !important;
         }
@@ -297,6 +303,34 @@
             border-radius: 8px;
             display: none;
         }
+        .info-message {
+            color: #48bb78;
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(72, 187, 120, 0.1);
+            border-radius: 8px;
+            display: none;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .step-indicator .step {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2a2a2a;
+            transition: 0.3s;
+        }
+        .step-indicator .step.active {
+            background: #cc0000;
+        }
+        .step-indicator .step.done {
+            background: #48bb78;
+        }
     </style>
 </head>
 <body>
@@ -305,32 +339,64 @@
     <div class="login" id="loginScreen">
         <div class="login-box">
             <h2>🔴 <span>Chat</span></h2>
-            <p>Avropa paytaxtlarından birini seçin</p>
+            <p id="stepDescription">Chat-a daxil olmaq üçün məlumatlarınızı daxil edin</p>
             
-            <div class="error-message" id="errorMessage"></div>
-            
-            <input type="text" id="usernameInput" placeholder="Paytaxt adı..." list="europeCities" />
-            <datalist id="europeCities">
-                <!-- Qərbi Avropa -->
-                <option value="London">
-                <option value="Paris">
-                <option value="Berlin">
-                <option value="Madrid">
-                <option value="Lissabon">
-                <option value="Roma">
-                <option value="Vatikan">
-                <option value="San Marino">
-                <option value="Andorra">
-                <option value="Monako">
-                <option value="Luksemburq">
-                <option value="Brüssel">
-                <option value="Amsterdam">
-                <option value="Dublin">
-                <option value="Bern">
-                <option value="Vyana">
+            <!-- Step 1: İstifadəçi məlumatları -->
+            <div id="step1">
+                <div class="step-indicator">
+                    <span class="step active" id="s1"></span>
+                    <span class="step" id="s2"></span>
+                    <span class="step" id="s3"></span>
+                </div>
                 
-            <button onclick="login()">Daxil ol</button>
-            <p class="error" id="loginError">Zəhmət olmasa ad daxil edin!</p>
+                <input type="text" id="usernameInput" placeholder="Paytaxt adı..." list="europeCities" />
+                <datalist id="europeCities">
+                    <option value="London"><option value="Paris"><option value="Berlin">
+                    <option value="Madrid"><option value="Roma"><option value="Amsterdam">
+                    <option value="Brüssel"><option value="Vyana"><option value="Bern">
+                    <option value="Kopenhagen"><option value="Stokholm"><option value="Oslo">
+                    <option value="Helsinki"><option value="Afina"><option value="Sofiya">
+                    <option value="Buxarest"><option value="Zaqreb"><option value="Belqrad">
+                    <option value="Budapeşt"><option value="Praqa"><option value="Varşava">
+                    <option value="Moskva"><option value="Kiyev"><option value="Bakı">
+                    <option value="Tbilisi"><option value="Ankara">
+                </datalist>
+                
+                <input type="text" id="telegramInput" placeholder="@Telegram istifadəçi adınız" />
+                
+                <button onclick="requestOTP()">🔐 OTP Göndər</button>
+                <div class="error-message" id="errorMessage"></div>
+                <div class="info-message" id="infoMessage"></div>
+            </div>
+            
+            <!-- Step 2: OTP daxil et -->
+            <div id="step2" style="display:none;">
+                <div class="step-indicator">
+                    <span class="step done" id="s1"></span>
+                    <span class="step active" id="s2"></span>
+                    <span class="step" id="s3"></span>
+                </div>
+                
+                <p style="color:#888888;font-size:14px;">Telegram-a göndərilən 6 rəqəmli kodu daxil edin</p>
+                <input type="text" id="otpInput" placeholder="OTP kodu..." maxlength="6" />
+                <button onclick="verifyOTP()">✅ Təsdiqlə</button>
+                <button onclick="requestOTP()" style="background:transparent;color:#888888;border:1px solid #2a0a0a;margin-top:5px;">Kodu yenidən göndər</button>
+                <div class="error-message" id="otpError"></div>
+            </div>
+            
+            <!-- Step 3: Daxil ol -->
+            <div id="step3" style="display:none;">
+                <div class="step-indicator">
+                    <span class="step done" id="s1"></span>
+                    <span class="step done" id="s2"></span>
+                    <span class="step active" id="s3"></span>
+                </div>
+                
+                <p style="color:#48bb78;font-size:16px;">✅ OTP təsdiqləndi!</p>
+                <button onclick="enterChat()">🚀 Chat-a daxil ol</button>
+            </div>
+            
+            <div class="error" id="loginError">Zəhmət olmasa ad daxil edin!</div>
         </div>
     </div>
 
@@ -364,30 +430,78 @@
         let currentRoom = 'ümumi';
         let roomsData = {};
         let lastAddedMessage = '';
+        let otpVerified = false;
 
-        // ===== GİRİŞ =====
-        function login() {
-            const input = document.getElementById('usernameInput');
-            const error = document.getElementById('loginError');
+        // ===== MFA FUNKSİYALARI =====
+        function requestOTP() {
+            const usernameInput = document.getElementById('usernameInput');
+            const telegramInput = document.getElementById('telegramInput');
             const errorMsg = document.getElementById('errorMessage');
-            const name = input.value.trim();
+            const infoMsg = document.getElementById('infoMessage');
 
-            error.style.display = 'none';
+            const name = usernameInput.value.trim();
+            const telegram = telegramInput.value.trim().replace('@', '');
+
             errorMsg.style.display = 'none';
+            infoMsg.style.display = 'none';
 
             if (!name) {
-                error.style.display = 'block';
+                errorMsg.textContent = '❌ Zəhmət olmasa paytaxt adını daxil edin!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            if (!telegram) {
+                errorMsg.textContent = '❌ Zəhmət olmasa Telegram istifadəçi adınızı daxil edin!';
+                errorMsg.style.display = 'block';
                 return;
             }
 
             username = name;
-            document.getElementById('loginScreen').classList.add('hidden');
-            connectSocket();
+
+            if (!socket) {
+                connectSocket();
+                setTimeout(() => {
+                    socket.emit('request_otp', {
+                        username: username,
+                        telegram_username: telegram
+                    });
+                }, 500);
+            } else {
+                socket.emit('request_otp', {
+                    username: username,
+                    telegram_username: telegram
+                });
+            }
+
+            infoMsg.textContent = '⏳ OTP göndərilir... Zəhmət olmasa gözləyin.';
+            infoMsg.style.display = 'block';
         }
 
-        document.getElementById('usernameInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') login();
-        });
+        function verifyOTP() {
+            const otpInput = document.getElementById('otpInput');
+            const otp = otpInput.value.trim();
+            const errorMsg = document.getElementById('otpError');
+
+            errorMsg.style.display = 'none';
+
+            if (!otp || otp.length !== 6) {
+                errorMsg.textContent = '❌ Zəhmət olmasa 6 rəqəmli OTP kodunu daxil edin!';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            socket.emit('verify_otp', {
+                username: username,
+                otp: otp
+            });
+        }
+
+        function enterChat() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('app').style.display = 'flex';
+            joinRoom('ümumi');
+        }
 
         // ===== SOCKET =====
         function connectSocket() {
@@ -401,21 +515,40 @@
                 secure: true
             });
 
-            socket.once('connect', function() {
+            socket.on('connect', function() {
                 console.log('✅ Bağlandı');
-                document.getElementById('status').textContent = '🟢 Bağlı';
-                document.getElementById('status').className = 'status';
-                setTimeout(() => joinRoom('ümumi'), 300);
             });
 
-            socket.once('connect_error', function() {
-                document.getElementById('status').textContent = '🔴 Bağlantı yoxdur';
-                document.getElementById('status').className = 'status offline';
+            socket.on('connect_error', function() {
+                console.log('❌ Bağlantı xətası');
             });
 
-            socket.on('disconnect', function() {
-                document.getElementById('status').textContent = '🔴 Bağlantı yoxdur';
-                document.getElementById('status').className = 'status offline';
+            socket.on('otp_sent', function(data) {
+                document.getElementById('infoMessage').textContent = data.message;
+                document.getElementById('infoMessage').style.display = 'block';
+                document.getElementById('step1').style.display = 'none';
+                document.getElementById('step2').style.display = 'block';
+                document.getElementById('stepDescription').textContent = 'Telegram-a göndərilən kodu daxil edin';
+            });
+
+            socket.on('otp_verified', function(data) {
+                otpVerified = true;
+                document.getElementById('step2').style.display = 'none';
+                document.getElementById('step3').style.display = 'block';
+                document.getElementById('stepDescription').textContent = '✅ Təsdiqləndi! Chat-a daxil olun.';
+                document.getElementById('usernameInput').value = data.username;
+            });
+
+            socket.on('otp_error', function(data) {
+                const errorMsg = document.getElementById('errorMessage');
+                const otpError = document.getElementById('otpError');
+                if (document.getElementById('step2').style.display !== 'none') {
+                    otpError.textContent = data.message;
+                    otpError.style.display = 'block';
+                } else {
+                    errorMsg.textContent = data.message;
+                    errorMsg.style.display = 'block';
+                }
             });
 
             socket.on('rooms_list', function(rooms) {
@@ -436,7 +569,7 @@
             });
 
             socket.on('message', function(data) {
-                console.log('📩 Mesaj gəldi (frontend):', data);
+                console.log('📩 Mesaj gəldi:', data);
                 lastAddedMessage = '';
                 addMessage(data);
             });
@@ -452,32 +585,24 @@
             });
 
             socket.on('error', function(data) {
-                console.error('❌ Server xətası:', data);
-                const errorMsg = document.getElementById('errorMessage');
-                if (errorMsg) {
-                    errorMsg.textContent = '❌ ' + data.message;
-                    errorMsg.style.display = 'block';
-                    setTimeout(() => {
-                        errorMsg.style.display = 'none';
-                    }, 5000);
-                } else {
-                    alert('❌ Xəta: ' + data.message);
-                }
+                console.error('❌ Xəta:', data);
+                alert('❌ ' + data.message);
             });
         }
 
         // ===== OTAQLAR =====
         function joinRoom(room) {
             if (!socket || !socket.connected) return;
+            if (!otpVerified) {
+                alert('⚠️ Zəhmət olmasa əvvəlcə OTP təsdiqləyin!');
+                return;
+            }
             currentRoom = room;
-
             const roomTitle = document.getElementById('roomTitle');
             if (roomTitle) {
                 roomTitle.textContent = roomsData[room] || room;
             }
-
             socket.emit('join', { room: room, username: username });
-
             document.querySelectorAll('.rooms button[data-room]').forEach(function(btn) {
                 btn.classList.toggle('active', btn.dataset.room === room);
             });
@@ -487,7 +612,6 @@
             const input = document.getElementById('newRoomInput');
             const name = input.value.trim();
             if (!name) return;
-
             fetch('/api/rooms/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -524,104 +648,61 @@
             const input = document.getElementById('messageInput');
             const msg = input.value.trim();
             if (!msg || !socket || !socket.connected) return;
-
             const now = new Date();
             const time = now.toLocaleTimeString('az', { hour: '2-digit', minute: '2-digit' });
-            const data = {
-                room: currentRoom,
-                username: username,
-                message: msg,
-                time: time
-            };
-
-            console.log('📤 Mesaj göndərilir:', data);
+            const data = { room: currentRoom, username: username, message: msg, time: time };
             socket.emit('message', data);
-
-            addMessage({
-                username: username,
-                message: msg,
-                time: time,
-                type: 'user'
-            });
-
+            addMessage({ username: username, message: msg, time: time, type: 'user' });
             input.value = '';
             input.focus();
         }
 
         function addMessage(data) {
-            console.log('📩 addMessage çağırıldı:', data);
-
-            let container = document.getElementById('messages');
+            const container = document.getElementById('messages');
             if (!container) {
-                console.warn('⚠️ messages elementi tapılmadı, yaradılır...');
-                container = document.createElement('div');
-                container.id = 'messages';
-                container.className = 'messages';
-                const chatArea = document.querySelector('.container');
-                if (chatArea) {
-                    const inputArea = document.querySelector('.input-area');
-                    if (inputArea) {
-                        chatArea.insertBefore(container, inputArea);
-                    } else {
-                        chatArea.appendChild(container);
-                    }
-                } else {
-                    document.body.appendChild(container);
-                }
-                console.log('✅ messages elementi yaradıldı');
+                console.warn('⚠️ messages elementi tapılmadı');
+                return;
             }
-
             if (data.type === 'system') {
                 const lastMessages = container.querySelectorAll('.msg.system');
                 for (let i = lastMessages.length - 1; i >= 0 && i >= lastMessages.length - 3; i--) {
                     if (lastMessages[i] && lastMessages[i].textContent === data.message) {
-                        console.log('⚠️ Təkrarlanan system mesajı bloklandı:', data.message);
                         return;
                     }
                 }
             }
-
             const messageKey = data.username + '-' + data.message + '-' + data.time;
-            if (messageKey === lastAddedMessage) {
-                console.log('⚠️ Təkrarlanan mesaj bloklandı (frontend)');
-                return;
-            }
+            if (messageKey === lastAddedMessage) return;
             lastAddedMessage = messageKey;
-
             const div = document.createElement('div');
             div.className = 'msg';
-
             if (data.type === 'system') {
                 div.className = 'msg system';
                 div.textContent = data.message;
             } else if (data.username === username) {
                 div.className = 'msg own';
-                div.innerHTML =
-                    '<span class="name">' + data.username + '</span>' + data.message +
+                div.innerHTML = '<span class="name">' + data.username + '</span>' + data.message +
                     '<span class="time">' + (data.time || '') + '</span>';
             } else {
                 div.className = 'msg other';
-                div.innerHTML =
-                    '<span class="name">' + data.username + '</span>' + data.message +
+                div.innerHTML = '<span class="name">' + data.username + '</span>' + data.message +
                     '<span class="time">' + (data.time || '') + '</span>';
             }
-
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
         // ===== HADİSƏLƏR =====
         document.getElementById('messageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                sendMessage();
-            }
+            if (e.key === 'Enter') { e.preventDefault();
+                sendMessage(); }
         });
-
         document.getElementById('newRoomInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') createRoom();
         });
+        document.getElementById('otpInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyOTP();
+        });
     </script>
-
 </body>
 </html>

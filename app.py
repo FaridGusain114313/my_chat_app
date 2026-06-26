@@ -1,14 +1,14 @@
-# app.py - Tam Düzəldilmiş Versiya
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
 import time
+import secrets
+import requests
 from datetime import datetime
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-# ===== SOCKET.IO - CORS AÇIQ =====
 socketio = SocketIO(
     app, 
     cors_allowed_origins="*",
@@ -17,16 +17,24 @@ socketio = SocketIO(
     ping_interval=25
 )
 
-# ===== İCAZƏ VERİLƏN İSTİFADƏÇİ ADLARI (Avropa Paytaxtları) =====
+# ===== TELEGRAM KONFİQURASİYASI =====
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', 'YOUR_BOT_TOKEN')
+TELEGRAM_BOT_USERNAME = os.environ.get('TELEGRAM_BOT_USERNAME', 'ChatAuthBot')
+
+# İstifadəçi məlumatları: {username: {'chat_id': xxx, 'otp': xxx, 'expiry': xxx, 'verified': xxx}}
+user_data = {}
+
+# İcazə verilən istifadəçi adları (Avropa paytaxtları)
 ALLOWED_USERS = [
-    # Qərbi Avropa
     "London", "Paris", "Berlin", "Madrid", "Lissabon",
-    "Roma", "Vatikan", "San Marino", "Andorra", "Monako",
-    "Luksemburq", "Brüssel", "Amsterdam", "Dublin",
-    "Bern", "Vyana"
+    "Roma", "Amsterdam", "Brüssel", "Vyana", "Bern",
+    "Kopenhagen", "Stokholm", "Oslo", "Helsinki", "Reykyavik",
+    "Afina", "Sofiya", "Buxarest", "Zaqreb", "Belqrad",
+    "Budapeşt", "Praqa", "Varşava", "Moskva", "Kiyev",
+    "Bakı", "Tbilisi", "Ankara"
 ]
 
-# ===== YADDAŞ =====
+# Otaqlar
 rooms = {
     'ümumi': {
         'name': 'Ümumi Söhbət',
@@ -36,8 +44,37 @@ rooms = {
 }
 MAX_MESSAGES = 100
 
-# Rate limiting üçün
+# Rate limiting
 user_last_message = {}
+
+# ===== TELEGRAM FUNKSİYALARI =====
+def send_telegram_message(chat_id, text):
+    """Telegram-a mesaj göndər"""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    try:
+        response = requests.post(url, json={
+            'chat_id': chat_id,
+            'text': text,
+            'parse_mode': 'Markdown'
+        }, timeout=10)
+        return response.status_code == 200
+    except Exception as e:
+        print(f"❌ Telegram xətası: {e}")
+        return False
+
+def generate_otp():
+    return str(secrets.randbelow(1000000)).zfill(6)
+
+def get_chat_id_from_username(username):
+    """İstifadəçi adına görə Chat ID tap"""
+    # Burada əvvəlcədən qeydiyyatdan keçmiş istifadəçilərin siyahısı olmalıdır
+    # Sadəlik üçün hardcode edirik (isteğe bağlı)
+    chat_ids = {
+        'FaridHuseynzada': 123456789,
+        'ElvinMammadov': 987654321,
+        # İstifadəçilərin Chat ID-lərini buraya əlavə edin
+    }
+    return chat_ids.get(username)
 
 # ===== ROUTES =====
 @app.route('/')
@@ -71,15 +108,96 @@ def handle_connect():
     print(f'✅ {request.sid} qoşuldu')
     emit('rooms_list', [{'id': r, 'name': rooms[r]['name']} for r in rooms])
 
+@socketio.on('request_otp')
+def handle_request_otp(data):
+    username = data.get('username', '').strip()
+    telegram_username = data.get('telegram_username', '').strip()
+    
+    # Username yoxla
+    if username not in ALLOWED_USERS:
+        emit('otp_error', {'message': f'"{username}" adı icazə verilən siyahıda yoxdur!'})
+        return
+    
+    # Telegram username yoxla
+    if not telegram_username:
+        emit('otp_error', {'message': 'Zəhmət olmasa Telegram istifadəçi adınızı daxil edin!'})
+        return
+    
+    # Telegram istifadəçisinin Chat ID-sini tap
+    chat_id = get_chat_id_from_username(telegram_username)
+    if not chat_id:
+        emit('otp_error', {'message': f'"{telegram_username}" Telegram istifadəçisi tapılmadı! Bot ilə söhbətə başlayın.'})
+        return
+    
+    # OTP yarat
+    otp = generate_otp()
+    user_data[username] = {
+        'chat_id': chat_id,
+        'telegram_username': telegram_username,
+        'otp': otp,
+        'expiry': time.time() + 300,  # 5 dəqiqə
+        'verified': False
+    }
+    
+    # Telegram-a göndər
+    message = f"""🔐 *Chat Təsdiqləmə Kodu*
+
+Salam @{telegram_username}!
+
+Təsdiqləmə kodunuz: `{otp}`
+
+Bu kod 5 dəqiqə ərzində etibarlıdır.
+
+🔹 Chat-a daxil olmaq üçün bu kodu tətbiqə daxil edin.
+🔹 Əgər bu sorğunu siz etməmisinizsə, bu mesajı görməzdən gəlin."""
+    
+    if send_telegram_message(chat_id, message):
+        emit('otp_sent', {'message': f'✅ OTP {telegram_username} Telegram-ına göndərildi!'})
+    else:
+        emit('otp_error', {'message': '❌ OTP göndərilmədi! Telegram istifadəçi adını yoxlayın.'})
+
+@socketio.on('verify_otp')
+def handle_verify_otp(data):
+    username = data.get('username', '').strip()
+    otp = data.get('otp', '').strip()
+    
+    if not username or not otp:
+        emit('otp_error', {'message': 'İstifadəçi adı və OTP tələb olunur!'})
+        return
+    
+    if username not in user_data:
+        emit('otp_error', {'message': 'OTP tələb edilməyib! Əvvəlcə OTP göndərin.'})
+        return
+    
+    user_info = user_data[username]
+    
+    # Vaxtı yoxla
+    if time.time() > user_info['expiry']:
+        emit('otp_error', {'message': 'OTP-nin vaxtı keçib! Yenidən göndərin.'})
+        return
+    
+    # OTP-ni yoxla
+    if user_info['otp'] == otp:
+        user_info['verified'] = True
+        emit('otp_verified', {
+            'message': '✅ OTP təsdiqləndi!',
+            'username': username
+        })
+    else:
+        emit('otp_error', {'message': '❌ Yanlış OTP! Yenidən cəhd edin.'})
+
 @socketio.on('join')
 def handle_join(data):
     room = data.get('room', 'ümumi')
     username = data.get('username', 'Anonim')
     
-    # ===== İSTİFADƏÇİ YOXLAMASI =====
+    # İstifadəçinin OTP təsdiqləndiyini yoxla
+    if username not in user_data or not user_data[username].get('verified', False):
+        emit('error', {'message': 'OTP təsdiqlənməyib! Əvvəlcə OTP-ni təsdiqləyin.'})
+        return
+    
     if username not in ALLOWED_USERS:
-        print(f"❌ İcazəsiz giriş cəhdi: {username}")
-        emit('error', {'message': f'"{username}" adı icazə verilən siyahıda yoxdur!'})
+        emit('error', {'message': f'"{username}" icazə verilən siyahıda yoxdur!'})
         return
     
     if room not in rooms:
@@ -105,8 +223,6 @@ def handle_join(data):
     rooms[room]['messages'].append(msg)
     emit('message', msg, to=room, include_self=False)
     emit('user_count', {'room': room, 'count': len(rooms[room]['users'])}, to=room)
-    
-    print(f"✅ {username} otağa qoşuldu!")
 
 @socketio.on('message')
 def handle_message(data):
@@ -117,16 +233,15 @@ def handle_message(data):
     if room not in rooms:
         return
     
-    # ===== RATE LIMITING (2 saniyə) =====
+    # Rate limiting
     user_id = request.sid
     now = time.time()
     if user_id in user_last_message:
         if now - user_last_message[user_id] < 2:
-            emit('error', {'message': 'Çox sürətli mesaj göndərirsiniz! 2 saniyə gözləyin.'})
+            emit('error', {'message': 'Çox sürətli! 2 saniyə gözləyin.'})
             return
     user_last_message[user_id] = now
     
-    # Mesajı formatla
     msg = {
         'username': username,
         'message': message,
@@ -148,7 +263,6 @@ def handle_disconnect():
             emit('user_count', {'room': room, 'count': len(rooms[room]['users'])}, to=room)
     print(f'❌ {request.sid} ayrıldı')
 
-# ===== SERVER =====
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port)
