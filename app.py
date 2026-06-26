@@ -14,7 +14,6 @@ def before_request():
     
 # Öz domeninizi təyin edin
 ALLOWED_ORIGINS = [
-   socketio = SocketIO(app, cors_allowed_origins=[
     "https://mychatapp-production-c2ce.up.railway.app",
     "https://mychatapp-production-c2ce.up.railway.app/",# Railway domeni
     "http://localhost:5000",  # Lokal test
