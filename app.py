@@ -14,13 +14,15 @@ def before_request():
     
 # Öz domeninizi təyin edin
 ALLOWED_ORIGINS = [
-    "https://mychatapp-production-c2ce.up.railway.app/",  # Railway domeni
+   socketio = SocketIO(app, cors_allowed_origins=[
+    "https://mychatapp-production-c2ce.up.railway.app",
+    "https://mychatapp-production-c2ce.up.railway.app/",# Railway domeni
     "http://localhost:5000",  # Lokal test
     "http://127.0.0.1:5000"   # Lokal test
 ]
 
 # ===== SOCKETIO =====
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="ALLOWED_ORIGINS")
 
 # Otaq şifrəsi (istəyə görə dəyişin)
 ROOM_PASSWORD = "secret123"
