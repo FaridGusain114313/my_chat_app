@@ -14,7 +14,7 @@ def before_request():
     
 # Öz domeninizi təyin edin
 ALLOWED_ORIGINS = [
-    "https://mychatapp-production-4c67.up.railway.app",  # Railway domeni
+    "https://mychatapp-production-c2ce.up.railway.app/",  # Railway domeni
     "http://localhost:5000",  # Lokal test
     "http://127.0.0.1:5000"   # Lokal test
 ]
