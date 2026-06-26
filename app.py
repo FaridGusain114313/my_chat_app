@@ -1,14 +1,18 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from flask_socketio import SocketIO, emit, join_room, leave_room
-from flask_talisman import Talisman
 import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-Talisman(app, force_https=True)
+# ===== HTTPS ZORLA (Talisman OLMADAN) =====
+@app.before_request
+def before_request():
+    if request.headers.get('X-Forwarded-Proto') == 'http' and os.environ.get('RAILWAY_ENVIRONMENT'):
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
 
-# Socket.io tənzimləməsi
+# ===== SOCKETIO =====
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Otaq şifrəsi (istəyə görə dəyişin)
