@@ -1,9 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask_talisman import Talisman
 import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+
+Talisman(app, force_https=True)
 
 # Socket.io tənzimləməsi
 socketio = SocketIO(app, cors_allowed_origins="*")
