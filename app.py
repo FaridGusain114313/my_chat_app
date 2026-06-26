@@ -31,7 +31,7 @@ ALLOWED_USERS = []  # Buraya icazə verilən istifadəçiləri əlavə edin
 TELEGRAM_CHAT_IDS = {"LORD_Voldemord_0": 6053941507}
     # "TelegramUsername": ChatID,
     # "FaridHuseynzada": 123456789,
-}
+
 
 # Otaqlar
 rooms = {
