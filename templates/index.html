@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>💬 Otaqlı Chat</title>
+    <title>💬 Chat</title>
     <style>
+        /* CSS əvvəlki kimi */
         * {
             margin: 0;
             padding: 0;
@@ -12,179 +13,164 @@
             font-family: system-ui, -apple-system, sans-serif;
         }
         body {
-            background: #0f0f1a;
+            background: #0a0a0a;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
         }
-        .app {
+        .container {
             width: 100%;
-            max-width: 1200px;
-            background: #1a1a2e;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
-            height: 90vh;
+            max-width: 700px;
+            height: 85vh;
+            background: #111111;
+            border-radius: 16px;
             display: flex;
+            flex-direction: column;
             overflow: hidden;
+            border: 1px solid #2a0a0a;
+            box-shadow: 0 0 40px rgba(139, 0, 0, 0.3);
         }
-        .sidebar {
-            width: 280px;
-            background: #16213e;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid #2a3a5e;
-        }
-        .sidebar h2 {
-            color: #e94560;
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-        .room-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-        .room-item {
-            padding: 12px 16px;
-            margin-bottom: 8px;
-            border-radius: 12px;
-            cursor: pointer;
-            background: transparent;
-            color: #a0aec0;
-            transition: all 0.3s;
+        .header {
+            padding: 16px 20px;
+            background: #1a0505;
+            color: #fff;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 2px solid #8b0000;
         }
-        .room-item:hover {
-            background: #1a2a4a;
-        }
-        .room-item.active {
-            background: #0f3460;
-            color: #fff;
-            border-left: 3px solid #e94560;
-        }
-        .room-item .badge {
-            background: #e94560;
-            color: #fff;
-            border-radius: 50%;
-            padding: 2px 8px;
-            font-size: 11px;
-        }
-        .room-item .badge.zero {
-            background: #2d3748;
-        }
-        .create-room {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-        }
-        .create-room input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1px solid #2a3a5e;
-            border-radius: 12px;
-            background: #0f1a2e;
-            color: #fff;
-            outline: none;
-        }
-        .create-room input:focus {
-            border-color: #e94560;
-        }
-        .create-room button {
-            padding: 10px 18px;
-            background: #e94560;
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-        .create-room button:hover {
-            background: #c73652;
-        }
-        .create-room button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .chat-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #1a1a2e;
-        }
-        .chat-header {
-            padding: 20px 25px;
-            background: #16213e;
-            border-bottom: 1px solid #2a3a5e;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .chat-header .room-title {
-            color: #fff;
+        .header .title {
             font-size: 18px;
             font-weight: 600;
+            color: #cc0000;
         }
-        .chat-header .user-count {
-            color: #a0aec0;
-            font-size: 14px;
+        .header .title span {
+            color: #fff;
         }
-        .connection-status {
+        .header .status {
             font-size: 12px;
-            padding: 4px 12px;
-            border-radius: 20px;
-            margin-left: 12px;
-        }
-        .connection-status.online {
-            background: #2d3748;
             color: #48bb78;
         }
-        .connection-status.offline {
-            background: #2d3748;
-            color: #e94560;
+        .header .status.offline {
+            color: #cc0000;
+        }
+        .rooms {
+            padding: 10px 20px;
+            background: #0d0d0d;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #1a0505;
+        }
+        .rooms button {
+            padding: 6px 16px;
+            border: 1px solid #2a0a0a;
+            border-radius: 20px;
+            background: transparent;
+            color: #888888;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .rooms button:hover {
+            background: #1a0505;
+            color: #cc0000;
+            border-color: #8b0000;
+        }
+        .rooms button.active {
+            background: #8b0000;
+            color: #fff;
+            border-color: #cc0000;
+        }
+        .rooms .new-room {
+            display: flex;
+            gap: 6px;
+        }
+        .rooms .new-room input {
+            padding: 4px 12px;
+            border: 1px solid #2a0a0a;
+            border-radius: 20px;
+            background: #0a0a0a;
+            color: #fff;
+            outline: none;
+            width: 120px;
+            font-size: 13px;
+        }
+        .rooms .new-room input:focus {
+            border-color: #8b0000;
+        }
+        .rooms .new-room button {
+            background: #8b0000;
+            color: #fff;
+            padding: 4px 12px;
+            border-color: #8b0000;
+        }
+        .rooms .new-room button:hover {
+            background: #cc0000;
+            border-color: #cc0000;
         }
         .messages {
             flex: 1;
-            padding: 20px;
+            padding: 16px 20px;
             overflow-y: auto;
-            background: #1a1a2e;
+            background: #0a0a0a;
+        }
+        .messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .messages::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        .messages::-webkit-scrollbar-thumb {
+            background: #8b0000;
+            border-radius: 3px;
         }
         .msg {
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             padding: 10px 16px;
-            border-radius: 14px;
+            border-radius: 12px;
             max-width: 80%;
             word-wrap: break-word;
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .msg.own {
-            background: #0f3460;
+            background: #660000;
             color: #fff;
             margin-left: auto;
+            border: 1px solid #8b0000;
             border-bottom-right-radius: 4px;
         }
         .msg.other {
-            background: #2d4059;
+            background: #1a1a1a;
             color: #fff;
+            border: 1px solid #2a0a0a;
             border-bottom-left-radius: 4px;
         }
         .msg.system {
             background: transparent;
-            color: #718096;
+            color: #666666;
             text-align: center;
             max-width: 100%;
             font-size: 13px;
             font-style: italic;
             padding: 5px 0;
+            border: none;
         }
         .msg .name {
             font-weight: 600;
             font-size: 13px;
             display: block;
+            color: #cc0000;
             margin-bottom: 3px;
+        }
+        .msg.own .name {
+            color: #ff6666;
         }
         .msg .time {
             font-size: 10px;
@@ -194,452 +180,312 @@
             margin-top: 4px;
         }
         .input-area {
+            padding: 12px 20px;
+            background: #0d0d0d;
             display: flex;
-            padding: 15px 20px;
-            background: #16213e;
-            gap: 12px;
-            border-top: 1px solid #2a3a5e;
+            gap: 10px;
+            border-top: 2px solid #1a0505;
         }
         .input-area input {
             flex: 1;
-            padding: 12px 20px;
-            border: 1px solid #2a3a5e;
+            padding: 10px 18px;
+            border: 1px solid #2a0a0a;
             border-radius: 25px;
-            background: #0f1a2e;
+            background: #0a0a0a;
             color: #fff;
             outline: none;
-            font-size: 14px;
         }
         .input-area input:focus {
-            border-color: #e94560;
+            border-color: #8b0000;
         }
-        .input-area input:disabled {
-            opacity: 0.5;
+        .input-area input::placeholder {
+            color: #444444;
         }
         .input-area button {
-            padding: 12px 30px;
-            background: #e94560;
+            padding: 10px 28px;
+            background: #8b0000;
             color: #fff;
             border: none;
             border-radius: 25px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.3s;
+            transition: all 0.3s;
         }
         .input-area button:hover {
-            background: #c73652;
+            background: #cc0000;
             transform: scale(1.02);
         }
-        .input-area button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .login-screen {
+        .login {
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1000;
+            z-index: 999;
         }
         .login-box {
-            background: #1a1a2e;
+            background: #111111;
             padding: 40px;
-            border-radius: 20px;
+            border-radius: 16px;
             text-align: center;
-            max-width: 400px;
             width: 90%;
+            max-width: 350px;
+            border: 1px solid #2a0a0a;
+            box-shadow: 0 0 60px rgba(139, 0, 0, 0.2);
         }
         .login-box h2 {
+            color: #cc0000;
+            margin-bottom: 6px;
+            font-size: 28px;
+        }
+        .login-box h2 span {
             color: #fff;
-            margin-bottom: 10px;
         }
         .login-box p {
-            color: #a0aec0;
-            margin-bottom: 20px;
+            color: #888888;
+            margin-bottom: 16px;
+            font-size: 14px;
         }
         .login-box input {
             width: 100%;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            border: 1px solid #2a3a5e;
+            padding: 10px 16px;
+            border: 1px solid #2a0a0a;
             border-radius: 12px;
-            background: #0f1a2e;
+            background: #0a0a0a;
             color: #fff;
             outline: none;
+            margin-bottom: 10px;
         }
         .login-box input:focus {
-            border-color: #e94560;
+            border-color: #8b0000;
+        }
+        .login-box input::placeholder {
+            color: #444444;
         }
         .login-box button {
             width: 100%;
-            padding: 12px;
-            background: #e94560;
+            padding: 10px;
+            background: #8b0000;
             color: #fff;
             border: none;
             border-radius: 12px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.3s;
+            transition: all 0.3s;
         }
         .login-box button:hover {
-            background: #c73652;
+            background: #cc0000;
         }
         .login-box .error {
-            color: #e94560;
+            color: #cc0000;
             font-size: 13px;
-            margin-top: 10px;
+            margin-top: 8px;
             display: none;
         }
-        .input-error {
-            border-color: #e94560 !important;
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
 
-    <div class="login-screen" id="loginScreen">
+    <!-- Giriş -->
+    <div class="login" id="loginScreen">
         <div class="login-box">
-            <h2>🔒 Otağa Giriş</h2>
+            <h2>🔴 <span>Chat</span></h2>
             <p>İstifadəçi adınızı daxil edin</p>
-            <input type="text" id="usernameInput" placeholder="👤 İstifadəçi adı" />
-            <button onclick="loginUser()">Daxil ol</button>
-            <p class="error" id="loginError">Zəhmət olmasa istifadəçi adınızı daxil edin!</p>
+            <input type="text" id="usernameInput" placeholder="Adınız..." />
+            <button onclick="login()">Daxil ol</button>
+            <p class="error" id="loginError">Ad daxil edin!</p>
         </div>
     </div>
 
-    <div class="app" id="app" style="display:none;">
-        <div class="sidebar">
-            <h2>💬 Otaqlar</h2>
-            <div class="room-list" id="roomList">
-                <div style="color:#718096;text-align:center;padding:20px;">Otaqlar yüklənir...</div>
-            </div>
-            <div class="create-room">
-                <input type="text" id="newRoomInput" placeholder="Yeni otaq adı..." />
+    <!-- Chat -->
+    <div class="container" id="app">
+        <div class="header">
+            <span class="title">🔴 <span id="roomTitle">Chat</span></span>
+            <span class="status" id="status">🟢 Bağlı</span>
+        </div>
+        <div class="rooms" id="roomsBar">
+            <button class="active" data-room="ümumi" onclick="joinRoom('ümumi')">🏠 Ümumi</button>
+            <div class="new-room">
+                <input type="text" id="newRoomInput" placeholder="Yeni otaq..." />
                 <button onclick="createRoom()">➕</button>
             </div>
         </div>
-        <div class="chat-area">
-            <div class="chat-header">
-                <div>
-                    <span class="room-title" id="currentRoomName">Ümumi Söhbət</span>
-                    <span class="connection-status online" id="connectionStatus">✅ Bağlı</span>
-                </div>
-                <span class="user-count" id="userCount">👥 0</span>
-            </div>
-            <div class="messages" id="messages">
-                <div style="text-align:center;color:#718096;padding:20px;">💬 Söhbətə başlamaq üçün mesaj yazın</div>
-            </div>
-            <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Mesaj yaz..." />
-                <button onclick="sendMessage()">Göndər</button>
-            </div>
+        <div class="messages" id="messages">
+            <div style="text-align:center;color:#444444;padding:20px;">💬 Mesaj yazın</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Mesaj..." />
+            <button onclick="sendMessage()">Göndər</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js">
     </script>
     <script>
-        // ==================== QLOBAL DƏYİŞƏNLƏR ====================
         let socket = null;
         let username = '';
         let currentRoom = 'ümumi';
         let roomsData = {};
-        let isConnecting = false;
+        let lastAddedMessage = '';
 
-        // ==================== GİRİŞ ====================
-        function loginUser() {
-            const nameInput = document.getElementById('usernameInput');
-            const errorEl = document.getElementById('loginError');
-
-            const name = nameInput.value.trim();
-
-            if (!name) {
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
+        // ===== GİRİŞ =====
+        function login() {
+            const input = document.getElementById('usernameInput');
+            const error = document.getElementById('loginError');
+            const name = input.value.trim();
+            if (!name) { error.style.display = 'block'; return; }
+            error.style.display = 'none';
             username = name;
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('app').style.display = 'flex';
-
-            initSocket();
+            document.getElementById('loginScreen').classList.add('hidden');
+            connectSocket();
         }
 
         document.getElementById('usernameInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') loginUser();
+            if (e.key === 'Enter') login();
         });
 
-        // ==================== ƏLAQƏ STATUSU ====================
-        function updateConnectionStatus(connected) {
-            const statusEl = document.getElementById('connectionStatus');
-            const messageInput = document.getElementById('messageInput');
-            const sendBtn = document.querySelector('.input-area button');
-            
-            if (statusEl) {
-                if (connected) {
-                    statusEl.textContent = '✅ Bağlı';
-                    statusEl.className = 'connection-status online';
-                    if (messageInput) messageInput.disabled = false;
-                    if (sendBtn) sendBtn.disabled = false;
-                } else {
-                    statusEl.textContent = '❌ Bağlantı yoxdur';
-                    statusEl.className = 'connection-status offline';
-                    if (messageInput) messageInput.disabled = true;
-                    if (sendBtn) sendBtn.disabled = true;
-                }
-            }
-        }
-
-        // ==================== SOCKET BAĞLANTISI ====================
-        function initSocket() {
-            if (isConnecting) return;
-            isConnecting = true;
-
+        // ===== SOCKET =====
+        function connectSocket() {
             if (socket) {
                 socket.disconnect();
                 socket = null;
             }
 
-            console.log('🔌 Socket qurulur...');
-
             socket = io({
                 transports: ['websocket', 'polling'],
-                secure: true,
-                rejectUnauthorized: false,
-                reconnection: true,
-                reconnectionAttempts: 10,
-                reconnectionDelay: 1000,
-                timeout: 20000
+                secure: true
             });
 
-            socket.on('connect', function() {
-                console.log('✅ Serverə qoşuldu! ID:', socket.id);
-                isConnecting = false;
-                updateConnectionStatus(true);
-                setTimeout(() => {
-                    joinRoom('ümumi');
-                }, 300);
+            socket.once('connect', function() {
+                console.log('✅ Bağlandı');
+                document.getElementById('status').textContent = '🟢 Bağlı';
+                document.getElementById('status').className = 'status';
+                setTimeout(() => joinRoom('ümumi'), 300);
             });
 
-            socket.on('connect_error', function(error) {
-                console.error('❌ Bağlantı xətası:', error);
-                isConnecting = false;
-                updateConnectionStatus(false);
+            socket.once('connect_error', function() {
+                document.getElementById('status').textContent = '🔴 Bağlantı yoxdur';
+                document.getElementById('status').className = 'status offline';
             });
 
             socket.on('disconnect', function() {
-                console.log('❌ Serverdən ayrıldı!');
-                updateConnectionStatus(false);
+                document.getElementById('status').textContent = '🔴 Bağlantı yoxdur';
+                document.getElementById('status').className = 'status offline';
             });
 
-            socket.on('reconnect', function(attemptNumber) {
-                console.log(`🔄 Yenidən qoşuldu (${attemptNumber})`);
-                updateConnectionStatus(true);
-                setTimeout(() => {
-                    joinRoom('ümumi');
-                }, 300);
-            });
-
-            socket.on('rooms_list', function(rooms) {
-                console.log('📋 Otaq siyahısı:', rooms);
+            socket.off('rooms_list').on('rooms_list', function(rooms) {
                 roomsData = {};
-                rooms.forEach(r => { roomsData[r.id] = r.name; });
+                rooms.forEach(function(r) { roomsData[r.id] = r.name; });
                 renderRooms(rooms);
             });
 
-            socket.on('room_joined', function(data) {
-                console.log('🔗 Otağa qoşuldu:', data);
-                if (data.username === username) {
-                    currentRoom = data.room;
-                    const roomName = roomsData[data.room] || data.room;
-                    document.getElementById('currentRoomName').textContent = roomName;
-                }
-                if (data.username !== username) {
-                    addSystemMessage(`👋 ${data.username} otağa qoşuldu!`);
-                }
-            });
-
-            socket.on('room_history', function(data) {
-                console.log('📜 Tarixçə:', data);
+            socket.off('history').on('history', function(data) {
                 const container = document.getElementById('messages');
                 container.innerHTML = '';
                 if (data.messages && data.messages.length > 0) {
-                    data.messages.forEach(msg => addMessage(msg));
+                    data.messages.forEach(function(msg) { addMessage(msg); });
                 } else {
                     container.innerHTML =
-                        '<div style="text-align:center;color:#718096;padding:20px;">💬 Hələ mesaj yoxdur</div>';
+                        '<div style="text-align:center;color:#444444;padding:20px;">💬 Hələ mesaj yoxdur</div>';
                 }
             });
 
-            socket.on('message', function(data) {
-                console.log('📩 Mesaj gəldi:', data);
+            socket.off('message').on('message', function(data) {
+                console.log('📩 Mesaj gəldi (frontend):', data);
+                lastAddedMessage = '';
                 addMessage(data);
             });
 
-            socket.on('user_count', function(data) {
-                console.log('👥 İstifadəçi sayı:', data);
-                if (data.room === currentRoom) {
-                    document.getElementById('userCount').textContent = `👥 ${data.count}`;
-                }
-                updateRoomCount(data.room, data.count);
-            });
-
-            socket.on('error', function(data) {
-                console.error('❌ Server xətası:', data);
-                alert('❌ Xəta: ' + data.message);
-            });
-        }
-
-        // ==================== OTAĞA QOŞUL ====================
-        function joinRoom(roomId) {
-            if (!roomId) roomId = 'ümumi';
-            
-            if (!socket || !socket.connected) {
-                console.log('⏳ Bağlantı gözlənilir...');
-                setTimeout(() => {
-                    if (socket && socket.connected) {
-                        socket.emit('join_room', { room: roomId, username: username });
-                    } else {
-                        console.error('❌ Bağlantı hələ qurulmayıb!');
+            socket.off('user_count').on('user_count', function(data) {
+                const btns = document.querySelectorAll('.rooms button[data-room]');
+                btns.forEach(function(btn) {
+                    if (btn.dataset.room === data.room) {
+                        const count = data.count > 0 ? ' (' + data.count + ')' : '';
+                        btn.textContent = btn.textContent.replace(/ \(\d+\)/, '') + count;
                     }
-                }, 1000);
-                return;
-            }
-            
-            console.log('🔗 Qoşulur:', roomId);
-            socket.emit('join_room', { room: roomId, username: username });
+                });
+            });
         }
 
-        // ==================== OTAQ YARAT ====================
+        // ===== OTAQLAR =====
+        function joinRoom(room) {
+            if (!socket || !socket.connected) return;
+            currentRoom = room;
+
+            const roomTitle = document.getElementById('roomTitle');
+            if (roomTitle) {
+                roomTitle.textContent = roomsData[room] || room;
+            }
+
+            socket.emit('join', { room: room, username: username });
+
+            document.querySelectorAll('.rooms button[data-room]').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.room === room);
+            });
+        }
+
         function createRoom() {
             const input = document.getElementById('newRoomInput');
             const name = input.value.trim();
-            
-            if (!name) {
-                input.classList.add('input-error');
-                setTimeout(() => input.classList.remove('input-error'), 1000);
-                return;
-            }
-            
-            if (!/^[a-zA-Z0-9\s_\-]+$/.test(name)) {
-                alert('❌ Otaq adında yalnız hərflər, rəqəmlər, boşluq, _ və - istifadə edin!');
-                return;
-            }
-            
-            const btn = document.querySelector('.create-room button');
-            btn.disabled = true;
-            btn.textContent = '⏳';
-            
-            console.log('➕ Otaq yaradılır:', name);
-            
+            if (!name) return;
+
             fetch('/api/rooms/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(data => {
-                        throw new Error(data.error || `HTTP xətası: ${response.status}`);
-                    });
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('📡 Cavab:', data);
-                if (data.error) {
-                    alert('❌ ' + data.error);
-                } else {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
                     roomsData[data.id] = data.name;
                     input.value = '';
-                    setTimeout(() => {
-                        joinRoom(data.id);
-                    }, 500);
-                }
-            })
-            .catch(error => {
-                console.error('❌ Xəta:', error);
-                alert('❌ Otaq yaradılarkən xəta: ' + error.message);
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.textContent = '➕';
-            });
+                    renderRooms(Object.keys(roomsData).map(function(id) { return { id: id, name: roomsData[id] }; }));
+                    setTimeout(function() { joinRoom(data.id); }, 300);
+                })
+                .catch(function(err) { alert('Xəta: ' + err.message); });
         }
 
-        // ==================== OTAQ SİYAHISI ====================
         function renderRooms(rooms) {
-            const container = document.getElementById('roomList');
-            container.innerHTML = '';
-
-            if (!rooms || rooms.length === 0) {
-                container.innerHTML =
-                    '<div style="color:#718096;text-align:center;padding:20px;">Heç bir otaq yoxdur</div>';
-                return;
-            }
-
-            rooms.forEach(room => {
-                const div = document.createElement('div');
-                div.className = 'room-item' + (room.id === currentRoom ? ' active' : '');
-                div.dataset.room = room.id;
-                div.innerHTML = `
-                        <span>${room.name}</span>
-                        <span class="badge zero" id="count_${room.id}">0</span>
-                    `;
-                div.onclick = function() { joinRoom(room.id); };
-                container.appendChild(div);
+            const bar = document.getElementById('roomsBar');
+            const newRoomDiv = bar.querySelector('.new-room');
+            bar.innerHTML = '';
+            rooms.forEach(function(room) {
+                const btn = document.createElement('button');
+                btn.dataset.room = room.id;
+                btn.textContent = room.name;
+                btn.onclick = function() { joinRoom(room.id); };
+                if (room.id === currentRoom) btn.classList.add('active');
+                bar.appendChild(btn);
             });
+            bar.appendChild(newRoomDiv);
         }
 
-        function updateRoomCount(roomId, count) {
-            const badge = document.getElementById(`count_${roomId}`);
-            if (badge) {
-                badge.textContent = count;
-                badge.className = 'badge' + (count === 0 ? ' zero' : '');
-            }
-        }
-
-        // ==================== MESAJ FUNKSİYALARI ====================
+        // ===== MESAJLAR =====
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const msg = input.value.trim();
-
-            if (!msg) {
-                input.classList.add('input-error');
-                setTimeout(() => input.classList.remove('input-error'), 1000);
-                return;
-            }
-
-            if (!socket || !socket.connected) {
-                alert('⚠️ Serverə bağlantı yoxdur!');
-                return;
-            }
-
-            const btn = document.querySelector('.input-area button');
-            btn.disabled = true;
-            btn.textContent = '⏳';
+            if (!msg || !socket || !socket.connected) return;
 
             const now = new Date();
             const time = now.toLocaleTimeString('az');
-
-            const messageData = {
-                room: currentRoom || 'ümumi',
-                username: username || 'Anonim',
+            const data = {
+                room: currentRoom,
+                username: username,
                 message: msg,
                 time: time
             };
 
-            console.log('📤 Mesaj göndərilir:', messageData);
+            console.log('📤 Mesaj göndərilir:', data);
+            socket.emit('message', data);
 
-            socket.emit('message', messageData);
-
+            // Öz mesajını dərhal əlavə et
             addMessage({
                 username: username,
                 message: msg,
@@ -649,62 +495,91 @@
 
             input.value = '';
             input.focus();
-
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.textContent = 'Göndər';
-            }, 300);
         }
 
         function addMessage(data) {
-            const container = document.getElementById('messages');
+            console.log('📩 addMessage çağırıldı:', data);
 
+            // **DƏYİŞİKLİK:** Elementi hər dəfə yenidən tap
+            let container = document.getElementById('messages');
+            
+            // Element yoxdursa, yarat
+            if (!container) {
+                console.warn('⚠️ messages elementi tapılmadı, yaradılır...');
+                container = document.createElement('div');
+                container.id = 'messages';
+                container.className = 'messages';
+                
+                const chatArea = document.querySelector('.container');
+                if (chatArea) {
+                    const inputArea = document.querySelector('.input-area');
+                    if (inputArea) {
+                        chatArea.insertBefore(container, inputArea);
+                    } else {
+                        chatArea.appendChild(container);
+                    }
+                } else {
+                    document.body.appendChild(container);
+                }
+                console.log('✅ messages elementi yaradıldı');
+            }
+
+            // System mesajları üçün təkrarlanma yoxlaması
             if (data.type === 'system') {
-                const div = document.createElement('div');
-                div.className = 'msg system';
-                div.textContent = data.message;
-                container.appendChild(div);
-                container.scrollTop = container.scrollHeight;
+                const lastMessages = container.querySelectorAll('.msg.system');
+                for (let i = lastMessages.length - 1; i >= 0 && i >= lastMessages.length - 3; i--) {
+                    if (lastMessages[i] && lastMessages[i].textContent === data.message) {
+                        console.log('⚠️ Təkrarlanan system mesajı bloklandı:', data.message);
+                        return;
+                    }
+                }
+            }
+
+            const messageKey = data.username + '-' + data.message + '-' + data.time;
+            if (messageKey === lastAddedMessage) {
+                console.log('⚠️ Təkrarlanan mesaj bloklandı (frontend)');
                 return;
             }
+            lastAddedMessage = messageKey;
 
             const div = document.createElement('div');
             div.className = 'msg';
-            div.classList.add(data.username === username ? 'own' : 'other');
-            div.innerHTML = `
+
+            if (data.type === 'system') {
+                div.className = 'msg system';
+                div.textContent = data.message;
+            } else if (data.username === username) {
+                div.className = 'msg own';
+                div.innerHTML = `
                     <span class="name">${data.username}</span>
                     ${data.message}
-                    <span class="time">${data.time || 'now'}</span>
+                    <span class="time">${data.time || ''}</span>
                 `;
+            } else {
+                div.className = 'msg other';
+                div.innerHTML = `
+                    <span class="name">${data.username}</span>
+                    ${data.message}
+                    <span class="time">${data.time || ''}</span>
+                `;
+            }
 
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         }
 
-        function addSystemMessage(text) {
-            addMessage({ type: 'system', message: text });
-        }
+        // ===== HADİSƏLƏR =====
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
 
-        // ==================== HADİSƏLƏR ====================
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📄 Səhifə yükləndi');
-            
-            const messageInput = document.getElementById('messageInput');
-            messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-
-            const newRoomInput = document.getElementById('newRoomInput');
-            newRoomInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    createRoom();
-                }
-            });
+        document.getElementById('newRoomInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') createRoom();
         });
     </script>
+
 </body>
 </html>
