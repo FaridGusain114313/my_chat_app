@@ -1,3 +1,4 @@
+# app.py - Tam Təmiz Kod (Paytaxtlar SİLİNDİ, İcazə Siyahısı Boş, Telegram MFA ilə)
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import os
@@ -19,20 +20,18 @@ socketio = SocketIO(
 
 # ===== TELEGRAM KONFİQURASİYASI =====
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', 'YOUR_BOT_TOKEN')
-TELEGRAM_BOT_USERNAME = os.environ.get('TELEGRAM_BOT_USERNAME', 'ChatAuthBot')
 
 # İstifadəçi məlumatları: {username: {'chat_id': xxx, 'otp': xxx, 'expiry': xxx, 'verified': xxx}}
 user_data = {}
 
-# İcazə verilən istifadəçi adları (Avropa paytaxtları)
-ALLOWED_USERS = [
-    "London", "Paris", "Berlin", "Madrid", "Lissabon",
-    "Roma", "Amsterdam", "Brüssel", "Vyana", "Bern",
-    "Kopenhagen", "Stokholm", "Oslo", "Helsinki", "Reykyavik",
-    "Afina", "Sofiya", "Buxarest", "Zaqreb", "Belqrad",
-    "Budapeşt", "Praqa", "Varşava", "Moskva", "Kiyev",
-    "Bakı", "Tbilisi", "Ankara"
-]
+# ===== İCAZƏ VERİLƏN İSTİFADƏÇİ ADLARI (BOŞ - SONRA DOLDURULAR) =====
+ALLOWED_USERS = []  # Buraya icazə verilən istifadəçiləri əlavə edin
+
+# ===== TELEGRAM İSTİFADƏÇİLƏRİNİN CHAT ID-LƏRİ =====
+TELEGRAM_CHAT_IDS = {
+    # "TelegramUsername": ChatID,
+    # "FaridHuseynzada": 123456789,
+}
 
 # Otaqlar
 rooms = {
@@ -63,18 +62,8 @@ def send_telegram_message(chat_id, text):
         return False
 
 def generate_otp():
+    """6 rəqəmli OTP yarat"""
     return str(secrets.randbelow(1000000)).zfill(6)
-
-def get_chat_id_from_username(username):
-    """İstifadəçi adına görə Chat ID tap"""
-    # Burada əvvəlcədən qeydiyyatdan keçmiş istifadəçilərin siyahısı olmalıdır
-    # Sadəlik üçün hardcode edirik (isteğe bağlı)
-    chat_ids = {
-        'FaridHuseynzada': 123456789,
-        'ElvinMammadov': 987654321,
-        # İstifadəçilərin Chat ID-lərini buraya əlavə edin
-    }
-    return chat_ids.get(username)
 
 # ===== ROUTES =====
 @app.route('/')
@@ -114,7 +103,7 @@ def handle_request_otp(data):
     telegram_username = data.get('telegram_username', '').strip()
     
     # Username yoxla
-    if username not in ALLOWED_USERS:
+    if ALLOWED_USERS and username not in ALLOWED_USERS:
         emit('otp_error', {'message': f'"{username}" adı icazə verilən siyahıda yoxdur!'})
         return
     
@@ -124,7 +113,7 @@ def handle_request_otp(data):
         return
     
     # Telegram istifadəçisinin Chat ID-sini tap
-    chat_id = get_chat_id_from_username(telegram_username)
+    chat_id = TELEGRAM_CHAT_IDS.get(telegram_username)
     if not chat_id:
         emit('otp_error', {'message': f'"{telegram_username}" Telegram istifadəçisi tapılmadı! Bot ilə söhbətə başlayın.'})
         return
@@ -196,7 +185,7 @@ def handle_join(data):
         emit('error', {'message': 'OTP təsdiqlənməyib! Əvvəlcə OTP-ni təsdiqləyin.'})
         return
     
-    if username not in ALLOWED_USERS:
+    if ALLOWED_USERS and username not in ALLOWED_USERS:
         emit('error', {'message': f'"{username}" icazə verilən siyahıda yoxdur!'})
         return
     

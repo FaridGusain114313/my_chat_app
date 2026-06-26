@@ -349,20 +349,8 @@
                     <span class="step" id="s3"></span>
                 </div>
                 
-                <input type="text" id="usernameInput" placeholder="Paytaxt adı..." list="europeCities" />
-                <datalist id="europeCities">
-                    <option value="London"><option value="Paris"><option value="Berlin">
-                    <option value="Madrid"><option value="Roma"><option value="Amsterdam">
-                    <option value="Brüssel"><option value="Vyana"><option value="Bern">
-                    <option value="Kopenhagen"><option value="Stokholm"><option value="Oslo">
-                    <option value="Helsinki"><option value="Afina"><option value="Sofiya">
-                    <option value="Buxarest"><option value="Zaqreb"><option value="Belqrad">
-                    <option value="Budapeşt"><option value="Praqa"><option value="Varşava">
-                    <option value="Moskva"><option value="Kiyev"><option value="Bakı">
-                    <option value="Tbilisi"><option value="Ankara">
-                </datalist>
-                
-                <input type="text" id="telegramInput" placeholder="@Telegram istifadəçi adınız" />
+                <input type="text" id="usernameInput" placeholder="👤 İstifadəçi adı" />
+                <input type="text" id="telegramInput" placeholder="📱 @Telegram istifadəçi adı" />
                 
                 <button onclick="requestOTP()">🔐 OTP Göndər</button>
                 <div class="error-message" id="errorMessage"></div>
@@ -378,9 +366,9 @@
                 </div>
                 
                 <p style="color:#888888;font-size:14px;">Telegram-a göndərilən 6 rəqəmli kodu daxil edin</p>
-                <input type="text" id="otpInput" placeholder="OTP kodu..." maxlength="6" />
+                <input type="text" id="otpInput" placeholder="🔑 OTP kodu..." maxlength="6" />
                 <button onclick="verifyOTP()">✅ Təsdiqlə</button>
-                <button onclick="requestOTP()" style="background:transparent;color:#888888;border:1px solid #2a0a0a;margin-top:5px;">Kodu yenidən göndər</button>
+                <button onclick="requestOTP()" style="background:transparent;color:#888888;border:1px solid #2a0a0a;margin-top:5px;">🔄 Kodu yenidən göndər</button>
                 <div class="error-message" id="otpError"></div>
             </div>
             
@@ -401,7 +389,7 @@
     </div>
 
     <!-- Chat -->
-    <div class="container" id="app">
+    <div class="container" id="app" style="display:none;">
         <div class="header">
             <span class="title">🔴 <span id="roomTitle">Chat</span></span>
             <span class="status" id="status">🟢 Bağlı</span>
@@ -446,7 +434,7 @@
             infoMsg.style.display = 'none';
 
             if (!name) {
-                errorMsg.textContent = '❌ Zəhmət olmasa paytaxt adını daxil edin!';
+                errorMsg.textContent = '❌ Zəhmət olmasa istifadəçi adınızı daxil edin!';
                 errorMsg.style.display = 'block';
                 return;
             }
