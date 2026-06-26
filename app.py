@@ -11,9 +11,16 @@ def before_request():
     if request.headers.get('X-Forwarded-Proto') == 'http' and os.environ.get('RAILWAY_ENVIRONMENT'):
         url = request.url.replace('http://', 'https://', 1)
         return redirect(url, code=301)
+    
+# Öz domeninizi təyin edin
+ALLOWED_ORIGINS = [
+    "https://mychatapp-production-4c67.up.railway.app",  # Railway domeni
+    "http://localhost:5000",  # Lokal test
+    "http://127.0.0.1:5000"   # Lokal test
+]
 
 # ===== SOCKETIO =====
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="ALLOWED_ORIGINS")
 
 # Otaq şifrəsi (istəyə görə dəyişin)
 ROOM_PASSWORD = "secret123"
